@@ -1,18 +1,18 @@
-Package: FluxnetLSM
+Package: fluxnetLSM
 Type: Package
-Title: Quality control and data conversion scripts for processing
-        FLUXNET data for land surface modelling
+Title: Quality control and data conversion scripts for processing FLUXNET data 
+    for land surface modelling
 Version: 1.0
 Date: 2017-01-31
 Author: Anna Ukkola and Ned Haughton (UNSW, Australia)
 Maintainer: Who to complain to <a.ukkola@unsw.edu.au>
 URL: https://github.com/aukkola/FluxnetLSM
-Description: Scripts for quality control of FLUXNET data, and
-        converting from CSV format to NetCDF, and managing metadata.
-License: TODO: What license is it under?
+Description: Scripts for quality control of FLUXNET data, and converting from 
+    CSV format to NetCDF, and managing metadata.
+License: GPL-3
+Imports: R.utils, ncdf4, 
+    rvest, jsonlite, xml2,
+    lutz
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 6.1.1
-Imports: R.utils, ncdf4, rvest
-Suggests: testthat
-git_revision: 245d2da169abc19160b5a3f84128a700673fb7bc-dirty
+RoxygenNote: 7.0.1
 Encoding: UTF-8

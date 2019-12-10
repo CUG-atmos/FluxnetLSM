@@ -1,5 +1,8 @@
 FluxnetLSM
 =================
+
+[![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/kongdd/FluxnetLSM?branch=master&svg=true)](https://ci.appveyor.com/project/kongdd/FluxnetLSM)
+
 R package for post-processing FLUXNET datasets for use in land surface modelling. Performs quality control and data conversion of FLUXNET data and collated site metadata. Supports FLUXNET2015, La Thuile and OzFlux data releases.
 
 URL: https://github.com/aukkola/FluxnetLSM

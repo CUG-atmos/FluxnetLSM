@@ -26,6 +26,8 @@
 #' @param showWarn Print warning?
 #' @param site_log Site log
 #' @return out
+#' 
+#' @import R.utils
 CheckDataGaps <- function(datain, qc_flags, missing_met, missing_flux, 
                           gapfill_met_tier1, gapfill_met_tier2, gapfill_flux,
                           gapfill_good, gapfill_med, gapfill_poor,
@@ -40,7 +42,7 @@ CheckDataGaps <- function(datain, qc_flags, missing_met, missing_flux,
   #Years with too many gapfilled/missing values in ANY essential met variables
   # or ALL preferred evaluation variables will not be processed and outputted.
   
-  library(R.utils) #seqToIntervals
+  # library(R.utils) #seqToIntervals
   
   #initialise warning messages
   warnings <- ""

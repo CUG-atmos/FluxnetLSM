@@ -8,6 +8,7 @@
 
 
 #' Creates a netcdf file for flux variables
+#' @import ncdf4 ncdf4
 CreateFluxNetcdfFile = function(fluxfilename, datain,            # outfile file and data
                                 site_code,                       # Fluxnet site code
                                 siteInfo,                        # Site attributes
@@ -24,8 +25,8 @@ CreateFluxNetcdfFile = function(fluxfilename, datain,            # outfile file 
 
 
     # load netcdf library
-    library(ncdf4)
-    library(lutz) #to get time zone
+    # library(ncdf4)
+    # library(lutz) #to get time zone
   
     # Time step size
     timestepsize <- datain$timestepsize
@@ -324,8 +325,8 @@ CreateMetNetcdfFile = function(metfilename, datain,             # outfile file a
                                global_atts){                    # Global attributes from original OzFlux nc-files
 
     # load netcdf library
-    library(ncdf4)
-    library(lutz) #to get time zone
+    # library(ncdf4)
+    # library(lutz) #to get time zone
   
   
     # Time step size
@@ -735,6 +736,4 @@ add_processing_info <- function(ncid, arg_info, datain, cat){
         ncatt_put(ncid,varid=0,attname='FLUXNET2015_version',
                   attval=arg_info$flx2015_version, prec="text")
     }
-
-
 }

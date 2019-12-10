@@ -226,8 +226,7 @@ read_era <- function(ERA_file, datain) {
 convert_LaThuile <- function(infiles, fair_usage=NA, fair_usage_vec=NA,
                              min_yrs, tcol, add_psurf, site_log, site_code) {
 
-    library(R.utils) # seqToIntervals
-
+    # library(R.utils) # seqToIntervals
     ### Find files to process ###
 
     # Find all available data years
@@ -381,7 +380,7 @@ convert_LaThuile <- function(infiles, fair_usage=NA, fair_usage_vec=NA,
 #' Converts OzFlux files to FLUXNET2015 format
 convert_OzFlux <- function(infile, tcol) {
   
-  library(ncdf4)
+  # library(ncdf4)
   
   #Open file handle
   nc <- nc_open(infile)

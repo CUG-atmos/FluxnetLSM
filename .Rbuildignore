@@ -1,2 +1,8 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
+^src$
+^document\.sh$
+^install\.sh$
+^TODO\.md$
+^appveyor\.yml$
+^LICENSE\.md$
