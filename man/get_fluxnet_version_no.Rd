@@ -6,6 +6,9 @@
 \usage{
 get_fluxnet_version_no(file)
 }
+\arguments{
+\item{file}{a FLUXNET2015 file, e.g 'FLX_US-Ha1_FLUXNET2015_FULLSET_HR_1991-2012_1-3.csv'}
+}
 \description{
 Gets Fluxnet dataset version from Fluxnet file
 }

@@ -25,15 +25,15 @@ site_metadata_template <- function(site_code) {
         Exclude = FALSE,
         Exclude_reason = NA,
         Description = NA,
-        TowerStatus = NA,	
-        Country = NA,	
-        MeasurementHeight = NA,	
-        VegetationDescription = NA,	
-        SoilType = NA,	
-        Disturbance = NA,	
-        CropDescription = NA,	
-        Irrigation = NA        
-        
+        TowerStatus = NA,
+        Country = NA,
+        MeasurementHeight = NA,
+        VegetationDescription = NA,
+        SoilType = NA,
+        Disturbance = NA,
+        CropDescription = NA,
+        Irrigation = NA
+
     )
 
     return(metadata)
@@ -49,23 +49,27 @@ get_site_code <- function(metadata){
 #' Gets the git version from the installed package
 #' See src/zzz.R for how git revision is discovered
 get_git_version <- function() {
+    # Abandoned function
 
     #Initialise warnings
     warnings <- ""
 
-    desc <- read.dcf(system.file("DESCRIPTION", package = "FluxnetLSM"))
-    if ("git_revision" %in% colnames(desc)) {
-        git_rev <- desc[1, "git_revision"]
-    } else if ("RemoteSha" %in% colnames(desc)) {
-        git_rev <- desc[1, "RemoteSha"]
-    } else {
-        git_rev <- "UNKNOWN"
+    # desc <- read.dcf(system.file("DESCRIPTION", package = "FluxnetLSM"))
+    # if ("git_revision" %in% colnames(desc)) {
+    #     git_rev <- desc[1, "git_revision"]
+    # } else if ("RemoteSha" %in% colnames(desc)) {
+    #     git_rev <- desc[1, "RemoteSha"]
+    # } else {
+    #     git_rev <- "UNKNOWN"
+    #
+    #     warn <- paste("Unknown git revision of FluxnetLSM. Please",
+    #                   "visit https://github.com/aukkola/FluxnetLSM and",
+    #                   "review the installation procedure")
+    #     warnings <- append_and_warn(warn=warn, warnings)
+    # }
 
-        warn <- paste("Unknown git revision of FluxnetLSM. Please",
-                      "visit https://github.com/aukkola/FluxnetLSM and",
-                      "review the installation procedure")
-        warnings <- append_and_warn(warn=warn, warnings)
-    }
+    git_rev = "NA"
+    warnings = "NA"
     return(list(git_rev=git_rev, warn=warnings))
 }
 
@@ -124,14 +128,14 @@ update_metadata <- function(metadata, new_metadata, overwrite=TRUE) {
             } else {  # old data is empty, or doesn't exist
                 metadata[n] <- new_metadata[n]
             }
-          
-      #Metadata value is missing but the field doesn't exist in metadata, 
+
+      #Metadata value is missing but the field doesn't exist in metadata,
       #save as is to avoid losing metadata field
       } else if (is.na(new_metadata[[n]]) & !(n %in% names(metadata))){
         metadata[n] <- new_metadata[n]
-        
+
       }
-    
+
     }
 
     return(metadata)
@@ -157,8 +161,7 @@ get_site_metadata_from_CSV <- function(metadata=NA, incl_processing=TRUE, model)
         metadata <- site_metadata_template(metadata)
     }
 
-    csv_data <- read.csv(site_csv_file, header = TRUE,
-                    stringsAsFactors = FALSE)
+    csv_data <- site_metadata
 
     if (is.na(metadata[1])) {  # [1] to skip if site_code is set
         # get all existing metadata as a list of lists
@@ -178,11 +181,11 @@ get_site_metadata_from_CSV <- function(metadata=NA, incl_processing=TRUE, model)
     if (site_code %in% csv_data$SiteCode) {
         csv_row <- as.list(csv_data[csv_data$SiteCode == site_code, ])
         metadata = update_metadata(metadata, csv_row)
-       
-    #Didn't find it (stop if trying to pass model parameters) 
+
+    #Didn't find it (stop if trying to pass model parameters)
     } else {
         message("    ", site_code, " not found in csv_data file")
-      
+
         if(!is.na(model)) stop("Cannot read model parameters, site not found in CSV metadata file. ",
                              "Please amend CSV file or set model=NA")
     }
@@ -574,7 +577,6 @@ get_site_metadata <- function(site_code, incl_processing=TRUE,
                               use_csv=TRUE, update_csv=FALSE, ...) {
     #Initialise warnings
     warnings <- ""
-
     metadata <- site_metadata_template(site_code)
 
     if (use_csv) {

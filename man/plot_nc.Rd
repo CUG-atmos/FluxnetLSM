@@ -4,7 +4,14 @@
 \alias{plot_nc}
 \title{Plots standard analysis plots from netcdf data}
 \usage{
-plot_nc(ncfile, analysis_type, vars, varnames, outfile, qc_flags)
+plot_nc(
+  ncfile,
+  analysis_type,
+  vars,
+  varnames = NULL,
+  outfile = "fluxnetLSM_",
+  qc_flags
+)
 }
 \arguments{
 \item{ncfile}{an open netcdf file}
@@ -13,8 +20,27 @@ plot_nc(ncfile, analysis_type, vars, varnames, outfile, qc_flags)
 
 \item{vars}{vector of variable names to plot}
 
-\item{outfile}{output path prefix, including directory}
+\item{varnames}{(optional) invisible for users}
+
+\item{outfile}{(optional) output path prefix, including directory}
+
+\item{qc_flags}{(optional) list of \code{QC_measured}, \code{QC_gapfilled} and \code{qc_info}}
 }
 \description{
 Plots standard analysis plots from netcdf data
+}
+\examples{
+\dontrun{
+library(ncdf4)
+library(magrittr)
+
+file   = "OUTPUTS/Nc_files/Flux/AU-Whr_2012-2014_FLUXNET2015_Flux.nc"
+ncfile = nc_open(file)
+
+vars_ndim <- map_int(ncfile$var, ~length(.x$varsize))
+vars <- vars_ndim \%>\% {names(.)[. == 3]}
+
+plot_nc(ncfile, analysis_type = c("diurnal"), vars, outfile = "diurnal_")
+# SumatraPDF("diurnal_DiurnalCycle.pdf")
+}
 }

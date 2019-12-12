@@ -2,12 +2,10 @@
 % Please edit documentation in R/Model_initialisations.R
 \name{initialise_model}
 \alias{initialise_model}
-\title{Finds model-specific parameters to be written
-to output NetCDF files}
+\title{Finds model-specific parameters to be written to output NetCDF files}
 \usage{
 initialise_model(model, site_info)
 }
 \description{
-Finds model-specific parameters to be written
-to output NetCDF files
+Finds model-specific parameters to be written to output NetCDF files
 }

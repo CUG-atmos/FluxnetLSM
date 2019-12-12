@@ -1,21 +1,36 @@
 # Plotting.R
 #
 # author: Anna Ukkola UNSW 2017
-#
+
 
 #' Plots standard analysis plots from netcdf data
 #'
 #' @param ncfile an open netcdf file
 #' @param analysis_type vector of plot names: c("annual", "diurnal", "timeseries")
 #' @param vars vector of variable names to plot
-#' @param outfile output path prefix, including directory
+#' @param varnames (optional) invisible for users
+#' @param outfile (optional) output path prefix, including directory
+#' @param qc_flags (optional) list of `QC_measured`, `QC_gapfilled` and `qc_info`
 #'
-#' 
-plot_nc <- function(ncfile, analysis_type, vars, varnames, outfile, qc_flags){
-  
+#' @importFrom purrr map
+#' @example man/example/ex-plot_nc.R
+#'
+#' @export
+plot_nc <- function(ncfile, analysis_type, vars, varnames = NULL,
+  outfile = "fluxnetLSM_", qc_flags)
+{
+
+  if (missing(qc_flags)) {
+    qc_flags = list(
+      QC_measured = 0,
+      QC_gapfilled = setNames(1:5, c("good", "medium", "poor", "ERA", "statistical")),
+      qc_info = "Measured: 0, Good-quality gapfilling: 1, Medium-quality gapfilling: 2, Poor-quality gapfilling: 3, ERA-Interim gapfilling: 4, Statistical gapfilling: 5"
+    )
+  }
+
   #Initialise warnings
   warnings <- ""
-  
+
   vars <- na.omit(sapply(vars, function(x) { if (x %in% names(ncfile$var)) x }))
   if (length(attr(vars, 'na.action')) > 0) {
       warn("Some variables missing from netcdf file: ", attr(vars, 'na.action'))
@@ -24,28 +39,21 @@ plot_nc <- function(ncfile, analysis_type, vars, varnames, outfile, qc_flags){
 
   #Separate data and QC variables
   #TODO: hard coding "_qc" here, need to change
-  data_vars <- vars[!grepl("_qc", vars)]
-  qc_vars   <- vars[grepl("_qc", vars)]
+  data_vars     <- vars[!grepl("_qc", vars)] %>% setNames(., .)
+  qc_vars       <- vars[grepl("_qc", vars)]
   
-    
   #Load data variables and units from NetCDF file
-  data        <- lapply(data_vars, ncvar_get, nc=ncfile)
-  data_units  <- lapply(data_vars, function(x) ncatt_get(nc=ncfile, varid=x, 
-                                                        attname="units")$value)
-  #fluxnet_names
-  fluxnet_names  <- lapply(data_vars, function(x) ncatt_get(nc=ncfile, varid=x, 
-                                                         attname="Fluxnet_name")$value)
-  names(data)       <- data_vars
-  names(data_units) <- data_vars
-  
+  data          <- map(data_vars, ncvar_get, nc=ncfile)
+  data_units    <- map(data_vars, ~ncatt_get(nc=ncfile, varid=.x, attname="units")$value)
+  fluxnet_names <- map(data_vars, ~ncatt_get(nc=ncfile, varid=.x, attname="Fluxnet_name")$value)
   
   #Retrieve time variable and units
-  time       <- ncvar_get(ncfile, "time")
-  time_units <- ncatt_get(ncfile, "time", "units")$value
+  time          <- ncvar_get(ncfile, "time")
+  time_units    <- ncatt_get(ncfile, "time", "units")$value
   
   #Find time attributes
-  timing <- GetTimingNcfile(ncfile)  
-  
+  timing        <- GetTimingNcfile(ncfile)
+
   #Abort if time unit not in seconds
   if(!grepl("seconds since", time_units)){
     warn <- paste("Unknown time units, unable to produce",
@@ -54,217 +62,192 @@ plot_nc <- function(ncfile, analysis_type, vars, varnames, outfile, qc_flags){
     warnings <- append_and_warn(warn=warn, warnings)
     return(warnings)
   }
-  
-  
-  #Time step size  
+
+
+  #Time step size
   timestepsize <- time[2] - time[1]
-  
+
   #Find start year
   startdate <- as.Date(strsplit(time_units, "seconds since ")[[1]][2])
   syear     <- as.numeric(format(startdate, "%Y"))
-  
-  
+
   ## If rainfall and air temp being plotted, ##
   ## convert to units mm/timestepsize and deg C             ##
   if(any(fluxnet_names %in% varnames$precip)){
     ind <- which(fluxnet_names %in% varnames$precip)
-    
+
     #If recognised units, convert to mm/timestep
-    if(data_units[[ind]]=="mm/s" | data_units[[ind]]=="mm s-1" | 
+    if(data_units[[ind]]=="mm/s" | data_units[[ind]]=="mm s-1" |
        data_units[[ind]]=="kg/m2/s" | data_units[[ind]]=="kg m-2 s-1"){
-      
+
       data[[ind]] <- data[[ind]] * timestepsize
       data_units[[ind]] <- paste("mm/", timestepsize/60, "min", sep="")
     }
   }
   if(any(fluxnet_names %in% varnames$tair)){
     ind <- which(fluxnet_names %in% varnames$tair)
-    
+
     #If recognised units, convert to mm/timestep
     if(data_units[[ind]]=="K"){
       data[[ind]] <- data[[ind]] - 273.15
       data_units[[ind]] <- paste("C")
     }
   }
-  
-  
+
   ## Load qc variables if available ##
   if(length(qc_vars) > 0) {
     qc_data <- lapply(qc_vars, ncvar_get, nc=ncfile)
-    names(qc_data) <- qc_vars  
+    names(qc_data) <- qc_vars
   }
 
-  
+
   ## Number of variables to plot ##
   no_vars <- length(data_vars)
-
 
   ## Site name:
   site_name <- paste0(ncatt_get(ncfile, 0, attname='site_name')$value, ' (',
                       ncatt_get(ncfile, 0, attname='site_code')$value, ')')
- 
+
   ### Loop through analysis types ###
   for(k in 1:length(analysis_type)){
-    
-
     ##################
     ## Annual cycle ##
     ##################
     if(analysis_type[k]=="annual"){
       message("Plotting annual cycles")
-      
+
       #Initialise file
       pdf(paste(outfile, "AnnualCycle.pdf", sep=""), height=no_vars*5,
             width=no_vars*5)
 
-      
       par(mai=c(0.6+(no_vars/7),1+(no_vars/15),0.7,0.2))
       par(omi=c(0.8+(no_vars/10),0.5+(no_vars/10),0.2+(no_vars/10),0.1+(no_vars/10)))
       par(mfrow=c(ceiling(sqrt(no_vars)), ceiling(sqrt(no_vars))))
-      
-      #Plot
+
       for(n in 1:length(data)){
-        
+
         AnnualCycle(obslabel=site_name, acdata=as.matrix(data[[n]]),
-                    varname=data_vars[n], 
-                    ytext=paste(data_vars[n], " (", data_units[n], ")", sep=""), 
-                    legendtext=data_vars[n], 
+                    varname=data_vars[n],
+                    ytext=paste(data_vars[n], " (", data_units[n], ")", sep=""),
+                    legendtext=data_vars[n],
                     timestepsize=timestepsize,
                     whole=timing$whole, plotcolours="black",
-                    plot.cex=no_vars/2, na.rm=TRUE)  
+                    plot.cex=no_vars/2, na.rm=TRUE)
       }
-  
-      #Close file
-      dev.off()
-      
-      
-      
-      
-      
+      dev.off() #Close file
     ###################
-    ## Diurnal cycle ## 
+    ## Diurnal cycle ##
     ###################
     } else if(analysis_type[k]=="diurnal"){
       message("Plotting diurnal cycles")
-      
       #Initialise file
       #Each variable is plotted as a separate figure so dimensions handled differently
       pdf(paste(outfile, "DiurnalCycle.pdf", sep=""), height=10,
           width=10)
-      
+
       par(mai=c(0.6,0.7,0.7,0.2))
       par(omi=c(0.8,0.5,0.2,0.1))
-      par(mfrow=c(ceiling(sqrt(no_vars)), ceiling(sqrt(no_vars))))
-      
+      # par(mfrow=c(ceiling(sqrt(no_vars)), ceiling(sqrt(no_vars))))
+      par(mfrow = c(floor(sqrt(no_vars)), 4))
+      par(mar=c(4,4,3,0.5),oma=c(0,0,0,1),
+        mgp=c(2.5,0.7,0),ps=16,tcl=-0.4)
+
       #Plot
-      for(n in 1:length(data)){  
-        
+      for(n in 1:length(data)){
+
         #Find corresponding QC variable (if available)
         qc_ind <- which(qc_vars==paste(data_vars[n], "_qc", sep=""))
-        
+
         #Extract QC data and replace all gap-filled values with 0
         # and measured with 1 (opposite to Fluxnet but what PALS expects)
         if(length(qc_ind) >0){
-          
+
           var_qc <- qc_data[[qc_ind]]
-          
+
           var_qc[!(var_qc %in% qc_flags$QC_measured)]  <- 2 #replace gap-filled values with a temporary value
           var_qc[var_qc %in% qc_flags$QC_measured]     <- 1 #set measured to 1
           var_qc[var_qc == 2] <- 0 #set gap-filled to 0
-          
+
           #Else set to PALS option corresponding to no QC data
         } else {
           var_qc <- matrix(-1, nrow = 1, ncol = 1)
         }
-        
+
         DiurnalCycle(obslabel=data_vars[n],dcdata=as.matrix(data[[n]]),
-                     varname=data_vars[n], 
-                     ytext=paste(data_vars[n], " (", data_units[n], ")", sep=""), 
+                     varname=data_vars[n],
+                     ytext=paste(data_vars[n], " (", data_units[n], ")", sep=""),
                      legendtext=data_vars[n], timestepsize=timestepsize,
                      whole=timing$whole, plotcolours="black",
                      #vqcdata=as.matrix(var_qc),
-                     plot.cex=1, na.rm=TRUE)  
+                     plot.cex=1, na.rm=TRUE)
       }
-      
-      #Close file
       dev.off()
-      
-      
-      
+
     ################################
     ## 14-day running time series ##
     ################################
     } else if(analysis_type[k]=="timeseries"){
       message("Plotting timeseries")
-      
-      #Plot
+
+      # Plot
       for(n in 1:length(data)){
-  
+
         #Initialise file
         filename <- paste0(outfile, "Timeseries_", data_vars[n], ".png")
         png(filename, height=720, width=1800, res=50, pointsize=20)
 
         #Increasing leftside margin to fit y-label
         par(mai=c(1.7, 2.2, 1.366667, 0.7))
-        
+
         #Find corresponding QC variable (if available)
         qc_ind <- which(qc_vars==paste(data_vars[n], "_qc", sep=""))
-        
+
         #Extract QC data and replace all gap-filled values with 0
         # and measured with 1 (opposite to Fluxnet but what PALS expects)
         if(length(qc_ind) >0){
-          
+
           var_qc <- qc_data[[qc_ind]]
-          
+
           var_qc[!(var_qc %in% qc_flags$QC_measured)]  <- 2 #replace gap-filled values with a temporary value
           var_qc[var_qc %in% qc_flags$QC_measured]     <- 1 #set measured to 1
           var_qc[var_qc == 2] <- 0 #set gap-filled to 0
-          
+
           #If first value missing, set to measured (to avoid an error when PALS
           #checks if first value -1)
           if(is.na(var_qc[1])){ var_qc[1] <- 0}
-          
-          
+
+
           #Else set to PALS option corresponding to no QC data
         } else {
           var_qc <- matrix(-1, nrow = 1, ncol = 1)
         }
-        
-        
+
         Timeseries(obslabel=site_name, tsdata=as.matrix(data[[n]]),
                    varname=data_vars[n],
-                   ytext=paste(data_vars[n], " (", data_units[n], ")", sep=""), 
+                   ytext=paste(data_vars[n], " (", data_units[n], ")", sep=""),
                    legendtext=data_vars[n],
-                   plotcex=2 , timing=timing, 
-                   smoothed = FALSE, winsize = 1, 
+                   plotcex=2 , timing=timing,
+                   smoothed = FALSE, winsize = 1,
                    plotcolours="black",
                    vqcdata = as.matrix(var_qc),
                    na.rm=TRUE)
-      
         dev.off()
       }
 
-           
-    
     ###################################################
     ## Else: Analysis type not known, return warning ##
     ###################################################
     } else {
-      
       warn <- paste("Attempted to produce output plot but analysis
                     type not known. Accepted types are 'annual', 'diurnal'
-                    and 'timeseries' but ", "'", analysis_type[k], "' was 
+                    and 'timeseries' but ", "'", analysis_type[k], "' was
                     passed to function.", sep="")
-      
+
       warnings <- append_and_warn(warn=warn, warnings)
     }
-    
-    
-    
+
   } #analyses
-  
   return(warnings)
-  
 } #function
 
 #-----------------------------------------------------------------------------
@@ -291,9 +274,9 @@ DiurnalCycle <- function(obslabel,dcdata,varname,ytext,legendtext,
   tstepinday=86400/timestepsize # number of time steps in a day
   ndays = ntsteps/tstepinday # number of days in data set
   nyears=as.integer(ndays/365) # find # years in data set
-  # Plot layout:
-  par(mfcol=c(2,2),mar=c(4,4,3,0.5),oma=c(0,0,0,1),
-      mgp=c(2.5,0.7,0),ps=16,tcl=-0.4)
+  # Plot layout: mfcol=c(2,2)
+  # par(mar=c(4,4,3,0.5),oma=c(0,0,0,1),
+  #     mgp=c(2.5,0.7,0),ps=16,tcl=-0.4)
   avday=array(0,dim=c(4,tstepinday,ncurves)) # initialise
   perc_missing = matrix(0,4,ncurves) #initialise, % data missing each season and model/obs
   if(modlabel=='no'){
@@ -320,52 +303,52 @@ DiurnalCycle <- function(obslabel,dcdata,varname,ytext,legendtext,
       for(l in 1:nyears){
         if(vqcdata[1,1] != -1){
           # Make sure gap-filled data is not included:
-          for(i in 1:tstepinday){ # Sum all values for each timestep:	
+          for(i in 1:tstepinday){ # Sum all values for each timestep:
             thisyearsseason = data_days[(stid[k]+(l-1)*365):(fnid[k]+(l-1)*365),i]
             sumnotexist = is.na(sum(thisyearsseason[
               as.logical(qc_days[(stid[k]+(l-1)*365):(fnid[k]+(l-1)*365),i])]))
             # Note the number of excluded values from k, ith sum:
-            exclvals[k,i] = exclvals[k,i] + 
+            exclvals[k,i] = exclvals[k,i] +
               sum(!as.logical(qc_days[(stid[k]+(l-1)*365):(fnid[k]+(l-1)*365),i]))
             # Allow NA value only if all years of season sum are NA:
-            if(l==1){ # 1st year of sum					
+            if(l==1){ # 1st year of sum
               avday[k,i,p] = avday[k,i,p] + sum(thisyearsseason[
                 as.logical(qc_days[(stid[k]+(l-1)*365):(fnid[k]+(l-1)*365),i])],na.rm=na.rm)
               missing_vals[k] = missing_vals[k] + sum(is.na(thisyearsseason)) #count no. missing timesteps
             }else{
-              if((!sumnotexist) & (!is.na(avday[k,i,p]))){ 
+              if((!sumnotexist) & (!is.na(avday[k,i,p]))){
                 # i.e. sum exists and values for previous years exist
                 avday[k,i,p] = avday[k,i,p] + sum(thisyearsseason[
                   as.logical(qc_days[(stid[k]+(l-1)*365):(fnid[k]+(l-1)*365),i])],na.rm=na.rm)
                 missing_vals[k] = missing_vals[k] + sum(is.na(thisyearsseason)) #count no. missing timesteps
-              }else if(!sumnotexist){ 
+              }else if(!sumnotexist){
                 # i.e. sum exists but previous years' sums are NA
                 avday[k,i,p] = sum(thisyearsseason[
                   as.logical(qc_days[(stid[k]+(l-1)*365):(fnid[k]+(l-1)*365),i])],na.rm=na.rm)
                 missing_vals[k] = missing_vals[k] + sum(is.na(thisyearsseason)) #count no. missing timesteps
-              }		
+              }
             }
           }
           if(k==1){ # i.e. DJF, which is split in any year
             # add Dec to Jan/Feb
             # this will never e the first attempt to add to this index of avday[k,i,p],
-            # so there's no l==1 case here:					
+            # so there's no l==1 case here:
             for(i in 1:tstepinday){
               thisyearsseason = data_days[(stid[k+4]+(l-1)*365):(fnid[k+4]+(l-1)*365),i]
               sumnotexist = is.na(sum(thisyearsseason[
                 as.logical(qc_days[(stid[k+4]+(l-1)*365):(fnid[k+4]+(l-1)*365),i])]))
               # Note the number of excluded values from k, ith sum:
-              exclvals[k,i] = exclvals[k,i] + 
+              exclvals[k,i] = exclvals[k,i] +
                 sum(!as.logical(qc_days[(stid[k+4]+(l-1)*365):(fnid[k+4]+(l-1)*365),i]))
-              if((!sumnotexist) & (!is.na(avday[k,i,p]))){ 
+              if((!sumnotexist) & (!is.na(avday[k,i,p]))){
                 # i.e. sum exists and values for previous years/DJF portions exist
                 avday[k,i,p] = avday[k,i,p] + sum(thisyearsseason[
                   as.logical(qc_days[(stid[k+4]+(l-1)*365):(fnid[k+4]+(l-1)*365),i])],na.rm=na.rm)
-              }else if(!sumnotexist){ 
+              }else if(!sumnotexist){
                 # i.e. sum exists but previous years' sums are NA
                 avday[k,i,p] = sum(thisyearsseason[
                   as.logical(qc_days[(stid[k+4]+(l-1)*365):(fnid[k+4]+(l-1)*365),i])],na.rm=na.rm)
-              }	
+              }
               missing_vals[k] = missing_vals[k] + sum(is.na(thisyearsseason)) #count missing values
             }
           }
@@ -375,10 +358,10 @@ DiurnalCycle <- function(obslabel,dcdata,varname,ytext,legendtext,
             if(all(is.na(data_days[(stid[k]+(l-1)*365):(fnid[k]+(l-1)*365),i]))){
               avday[k,i,p] <- NA
             } else{
-              avday[k,i,p]=avday[k,i,p] + 
+              avday[k,i,p]=avday[k,i,p] +
                 sum(data_days[(stid[k]+(l-1)*365):(fnid[k]+(l-1)*365),i], na.rm=na.rm)
              }
-            missing_vals[k] = missing_vals[k] + 
+            missing_vals[k] = missing_vals[k] +
               sum(is.na(data_days[(stid[k]+(l-1)*365):(fnid[k]+(l-1)*365),i])) #count missing values
           }
           if(k==1){ # i.e. DJF, which is split in any year
@@ -387,16 +370,16 @@ DiurnalCycle <- function(obslabel,dcdata,varname,ytext,legendtext,
               if(all(is.na(data_days[(stid[k+4]+(l-1)*365):(fnid[k+4]+(l-1)*365),i]))){
                 avday[k,i,p] <- NA
               } else{
-                avday[k,i,p]=avday[k,i,p] + 
+                avday[k,i,p]=avday[k,i,p] +
                   sum(data_days[(stid[k+4]+(l-1)*365):(fnid[k+4]+(l-1)*365),i], na.rm=na.rm)
               }
-              missing_vals[k] = missing_vals[k] + 
+              missing_vals[k] = missing_vals[k] +
                 sum(is.na(data_days[(stid[k]+(l-1)*365):(fnid[k]+(l-1)*365),i])) #count missing values
             }
           }
         } # use gap-filling info or not
       } # for each year in the data set
-      
+
       # Then find the average of these values:
       if(k==1){ # i.e. DJF, which is split in any year
         avday[k,,p]=avday[k,,p]/(90*nyears - exclvals[k,] - (missing_vals[k]/tstepinday))
@@ -410,17 +393,17 @@ DiurnalCycle <- function(obslabel,dcdata,varname,ytext,legendtext,
     } # over each season
     if(p>1){
       # Calculate all-season score:
-      pscoretotal[p-1] = sum(abs(as.vector(avday[,,p] - avday[,,1])),na.rm=TRUE) / 
+      pscoretotal[p-1] = sum(abs(as.vector(avday[,,p] - avday[,,1])),na.rm=TRUE) /
         sum(abs(as.vector(mean(avday[,,1],na.rm=TRUE) - avday[,,1])),na.rm=TRUE)
       removefractotal = sum(exclvals) / ntsteps
     }
   } # for each curve (mod, obs, etc)
-  
+
   # Report NME metric:
   if(ncurves==2){ # model only
-    metrics[[1]] = list(name='NME',model_value=pscoretotal[1])	
+    metrics[[1]] = list(name='NME',model_value=pscoretotal[1])
   }else if(ncurves==3){
-    metrics[[1]] = list(name='NME',model_value=pscoretotal[1],bench_value=list(bench1=pscoretotal[2]))	
+    metrics[[1]] = list(name='NME',model_value=pscoretotal[1],bench_value=list(bench1=pscoretotal[2]))
   }else if(ncurves==4){
     metrics[[1]] = list(name='NME',model_value=pscoretotal[1],
                         bench_value=list(bench1=pscoretotal[2],bench2=pscoretotal[3]))
@@ -428,7 +411,7 @@ DiurnalCycle <- function(obslabel,dcdata,varname,ytext,legendtext,
     metrics[[1]] = list(name='NME',model_value=pscoretotal[1],
                         bench_value=list(bench1=pscoretotal[2],bench2=pscoretotal[3],bench3=pscoretotal[4]))
   }
-  
+
   # Determine boundaries for plots:
   xloc=c(0:(tstepinday-1)) # set location of x-coords in plot
   # Now plot each panel:
@@ -444,7 +427,7 @@ DiurnalCycle <- function(obslabel,dcdata,varname,ytext,legendtext,
       yaxmax=max(avday,na.rm=na.rm)+(max(avday,na.rm=na.rm)-yaxmin)*0.15 # y axis maximum in plot
       # Plot obs data result:
       plot(xloc,avday[k,,1],type="l",xaxt="n",xlab=paste(labels[k],'hour of day'),
-           ylab=ytext,lwd=4,col=plotcolours[1],ylim=c(yaxmin,yaxmax), 
+           ylab=ytext,lwd=4,col=plotcolours[1],ylim=c(yaxmin,yaxmax),
            cex.axis=plot.cex, cex.lab=plot.cex)
       # Then add other curves, if any:
       if(ncurves>1){
@@ -454,8 +437,8 @@ DiurnalCycle <- function(obslabel,dcdata,varname,ytext,legendtext,
           # Score is normalised mean error:
           pscore[k,p-1] = sum(abs(avday[k,,p] - avday[k,,1]),na.rm=TRUE) /
             sum(abs(as.vector(mean(avday[k,,1],na.rm=TRUE) - avday[k,,1])),na.rm=TRUE)
-        }  
-      }	
+        }
+      }
 
       if(k==1){
         # Position legend (and total score, if required):
@@ -496,8 +479,8 @@ DiurnalCycle <- function(obslabel,dcdata,varname,ytext,legendtext,
       }else if(k==3){
         # Add note about removing gap-filled data:
         if(vqcdata[1,1] != -1){
-          qctext = 'Gap-filled observed data removed\nfrom all plots and scores.'	
-        }else{	
+          qctext = 'Gap-filled observed data removed\nfrom all plots and scores.'
+        }else{
           qctext = 'All time steps of observed data used.'
         }
         text(-1,yaxmax-(yaxmax-yaxmin)*0.07,qctext,pos=4)
@@ -508,7 +491,7 @@ DiurnalCycle <- function(obslabel,dcdata,varname,ytext,legendtext,
         removestring = paste(signif(removefrac[k]*100,digits=2),collapse=', ')
         scoretext = paste('Score: ',scorestring,'\n','(NME; ',
                           removestring,'% data removed)',sep='')
-        text((tstepinday/2),yaxmax-(yaxmax-yaxmin)*0.07,scoretext,pos=4)	
+        text((tstepinday/2),yaxmax-(yaxmax-yaxmin)*0.07,scoretext,pos=4)
       }
       #Print percentage of data missing if na.rm=TRUE and some data missing
       if(na.rm){
@@ -520,7 +503,7 @@ DiurnalCycle <- function(obslabel,dcdata,varname,ytext,legendtext,
       }
   }#all NA
     axis(1,at=c(0,6*tstepinday/24,12*tstepinday/24,18*tstepinday/24,
-                23*tstepinday/24),labels=c('0','6','12','18','23'), 
+                23*tstepinday/24),labels=c('0','6','12','18','23'),
                 cex.axis=plot.cex, cex.lab=plot.cex)
     title(alltitle) # add title
   } # each plot / season
@@ -551,12 +534,12 @@ AnnualCycle <- function(obslabel,acdata,varname,ytext,legendtext,timestepsize,
   # For each curve (i.e. model, obs etc):
   for(p in 1:ncurves){
     # Reshape into timestep columns, row days:
-    data_days=matrix(acdata[,p],ncol=tstepinday,byrow=TRUE) 
+    data_days=matrix(acdata[,p],ncol=tstepinday,byrow=TRUE)
     avday=c() # initialise
     # Transform data into daily averages:
     for(i in 1:ndays){
       avday[i]=mean(data_days[i,],na.rm=na.rm) # calc daily average value
-    }	
+    }
     # Transform daily means into monthly means:
     for(m in 1:12){ # for each month
       data_month=0 # initialise
@@ -564,7 +547,7 @@ AnnualCycle <- function(obslabel,acdata,varname,ytext,legendtext,timestepsize,
       for(k in 1:nyears){ # for each year of data set
         # Add all daily averages for a given month
         # over all data set years:
-        data_month = data_month + 
+        data_month = data_month +
           sum(avday[(month$start[m]+(k-1)*365):
                       (month$start[m+1]-1 +(k-1)*365) ], na.rm=na.rm)
         #Number of missing time steps
@@ -577,7 +560,7 @@ AnnualCycle <- function(obslabel,acdata,varname,ytext,legendtext,timestepsize,
     }
   }
   xloc=c(1:12) # set location of x-coords
-  
+
   #If all missing, plot empty
   if(all(is.na(data_monthly[,1]))){
     plot(xloc,xloc,type="n",xaxt="n",xlab='Month',ylab=ytext,yaxt="n",
@@ -598,7 +581,7 @@ AnnualCycle <- function(obslabel,acdata,varname,ytext,legendtext,timestepsize,
         # Score is normalised mean error:
         pscore[p-1] = sum(abs(data_monthly[,p] - data_monthly[,1])) /
           sum(abs(mean(data_monthly[,1]) - data_monthly[,1]))
-      }  
+      }
     }
     legend(1,max(data_monthly)+0.15*(max(data_monthly)-yaxmin),legendtext[1:ncurves],
            lty=1,col=plotcolours[1:ncurves],lwd=3,bty="n",yjust=0.8, cex=plot.cex)
@@ -607,9 +590,9 @@ AnnualCycle <- function(obslabel,acdata,varname,ytext,legendtext,timestepsize,
       scoretext = paste('Score: ',scorestring,'\n','(NME)',sep='')
       text(8,max(data_monthly)+0.1*(max(data_monthly)-yaxmin),scoretext,pos=4,offset=1, cex=plot.cex)
       if(ncurves==2){ # model only
-        metrics[[1]] = list(name='NME',model_value=pscore[1])  
+        metrics[[1]] = list(name='NME',model_value=pscore[1])
       }else if(ncurves==3){
-        metrics[[1]] = list(name='NME',model_value=pscore[1],bench_value=list(bench1=pscore[2]))	
+        metrics[[1]] = list(name='NME',model_value=pscore[1],bench_value=list(bench1=pscore[2]))
       }else if(ncurves==4){
         metrics[[1]] = list(name='NME',model_value=pscore[1],
                             bench_value=list(bench1=pscore[2],bench2=pscore[3]))
@@ -631,7 +614,7 @@ AnnualCycle <- function(obslabel,acdata,varname,ytext,legendtext,timestepsize,
   #Print percentage of data missing if na.rm=TRUE and some data missing
   if(na.rm){
     perc_missing = round(sapply(1:ncol(acdata), function(x) #round
-      sum(is.na(acdata[,x]))/length(acdata[,x])), digits=3)      
+      sum(is.na(acdata[,x]))/length(acdata[,x])), digits=3)
     if(!all(is.na(data_monthly[,1])) & any(perc_missing > 0)){
       text(1,yaxmax, paste(paste(perc_missing,collapse=","), "% data missing", sep=""),
            pos=4,offset=1, col="red", cex=plot.cex)
@@ -662,7 +645,7 @@ Timeseries <- function(obslabel,tsdata,varname,ytext,legendtext,
   if(smoothed){
     for(p in 1:ncurves){
       # Reshape into column timesteps, row days:
-      data_days=matrix(tsdata[,p],ncol=tstepinday,byrow=TRUE) 
+      data_days=matrix(tsdata[,p],ncol=tstepinday,byrow=TRUE)
       for(i in 1:(ndays-winsize-1)){
         # Find evaporative fraction using averaging window:
         data_smooth[i,p] = mean(data_days[i:(i+winsize-1),],na.rm=na.rm)
@@ -672,7 +655,7 @@ Timeseries <- function(obslabel,tsdata,varname,ytext,legendtext,
         yvalmax = as.character(signif(max(tsdata[,p],na.rm=na.rm),3))
         datamean = as.character(signif(mean(tsdata[,p],na.rm=na.rm),3))
         datasd = as.character(signif(sd(tsdata[,p],na.rm=na.rm),3))
-        
+
       }else{
         yvalmin = paste(yvalmin,', ',as.character(signif(min(tsdata[,p],na.rm=na.rm),3)),sep='')
         yvalmax = paste(yvalmax,', ',as.character(signif(max(tsdata[,p],na.rm=na.rm),3)),sep='')
@@ -720,15 +703,15 @@ Timeseries <- function(obslabel,tsdata,varname,ytext,legendtext,
       # Report NME metric:
       metricname = paste('NME',winsize,'day',sep='')
       if(ncurves==2){ # model only
-        metrics[[1]] = list(name='Bias',model_value=mean(tsdata[,2]-tsdata[,1],na.rm=TRUE)) 
-        metrics[[2]] = list(name='NME',model_value=allscore[1]) 
-        metrics[[3]] = list(name=metricname,model_value=smoothscore[1]) 
+        metrics[[1]] = list(name='Bias',model_value=mean(tsdata[,2]-tsdata[,1],na.rm=TRUE))
+        metrics[[2]] = list(name='NME',model_value=allscore[1])
+        metrics[[3]] = list(name=metricname,model_value=smoothscore[1])
       }else if(ncurves==3){
         metrics[[1]] = list(name='Bias',model_value=mean(tsdata[,2]-tsdata[,1],na.rm=TRUE),
                             bench_value=list(bench1=mean(tsdata[,3]-tsdata[,1],na.rm=TRUE) ))
-        metrics[[2]] = list(name='NME',model_value=allscore[1],bench_value=list(bench1=allscore[2]))	
+        metrics[[2]] = list(name='NME',model_value=allscore[1],bench_value=list(bench1=allscore[2]))
         metrics[[3]] = list(name=metricname,model_value=smoothscore[1],
-                            bench_value=list(bench1=smoothscore[2]))	
+                            bench_value=list(bench1=smoothscore[2]))
       }else if(ncurves==4){
         metrics[[1]] = list(name='Bias',model_value=mean(tsdata[,2]-tsdata[,1],na.rm=TRUE),
                             bench_value=list(bench1=mean(tsdata[,3]-tsdata[,1],na.rm=TRUE),
@@ -736,7 +719,7 @@ Timeseries <- function(obslabel,tsdata,varname,ytext,legendtext,
         metrics[[2]] = list(name='NME',model_value=allscore[1],
                             bench_value=list(bench1=allscore[2],bench2=allscore[3]))
         metrics[[3]] = list(name=metricname,model_value=smoothscore[1],
-                            bench_value=list(bench1=smoothscore[2],bench2=smoothscore[3]))	
+                            bench_value=list(bench1=smoothscore[2],bench2=smoothscore[3]))
       }else if(ncurves==5){
         metrics[[1]] = list(name='Bias',model_value=mean(tsdata[,2]-tsdata[,1],na.rm=TRUE),
                             bench_value=list(bench1=mean(tsdata[,3]-tsdata[,1],na.rm=TRUE),
@@ -745,12 +728,12 @@ Timeseries <- function(obslabel,tsdata,varname,ytext,legendtext,
         metrics[[2]] = list(name='NME',model_value=allscore[1],
                             bench_value=list(bench1=allscore[2],bench2=allscore[3],bench3=allscore[4]))
         metrics[[3]] = list(name=metricname,model_value=smoothscore[1],
-                            bench_value=list(bench1=smoothscore[2],bench2=smoothscore[3],bench3=smoothscore[4]))	
+                            bench_value=list(bench1=smoothscore[2],bench2=smoothscore[3],bench3=smoothscore[4]))
       }
     }
     for(l in 1:nyears){
       xxat[(2*l-1)] = (l-1)*365 + 1
-      xxat[(2*l)] = (l-1)*365 + 152	
+      xxat[(2*l)] = (l-1)*365 + 152
       xxlab[(2*l-1)]=paste('1 Jan',substr(as.character(timing$syear+l-1),3,4))
       xxlab[(2*l)]=paste('1 Jun',substr(as.character(timing$syear+l-1),3,4))
     }
@@ -786,8 +769,8 @@ Timeseries <- function(obslabel,tsdata,varname,ytext,legendtext,
     }
     #Print percentage of data missing if na.rm=TRUE and some data missing
     if(na.rm){
-      perc_missing = signif(sapply(1:ncol(tsdata), function(x) 
-        sum(is.na(tsdata[,x]))/length(tsdata[,x])), digits=3)	   
+      perc_missing = signif(sapply(1:ncol(tsdata), function(x)
+        sum(is.na(tsdata[,x]))/length(tsdata[,x])), digits=3)
       if(any(perc_missing > 0)){
         text(xmin-(xmax-xmin)*0.03,y=(ymin + (ymax-ymin)*(y_adj+0.24)),
              paste("(",paste(perc_missing,collapse=", "), ")% data missing", sep=""),
@@ -808,8 +791,8 @@ Timeseries <- function(obslabel,tsdata,varname,ytext,legendtext,
       lines(xloc_qc,gapline,lwd=10,col='indianred', lend=1)
       text(x=xmin,y=qctexty,cex=max((plotcex*0.75),0.85),pos=4,
            labels=paste(qcpc,'% of observed ',varname[1],' is gap-filled:',sep=''))
-    }	
-    
+    }
+
   #Not smoothed
   }else{
     xmin = 1
@@ -831,19 +814,19 @@ Timeseries <- function(obslabel,tsdata,varname,ytext,legendtext,
       datasd = signif(sd(tsdata[,1], na.rm=na.rm),3)
       ymin = yvalmin
       ymax = yvalmax
-      
+
       #If ignoring NA, make space for printing % missing
       #Also shift other labels and legend down in this case
       if(na.rm){
         ymax=ymax*1.1
         y_adj = 0.94
       }
-      
+
       plot(xloc,tsdata[,1],type="l",ylab=ytext,lwd=3,
            col=plotcolours[1],ylim=c(ymin,(ymin + (ymax-ymin)*1.3)),
            xaxt='n',cex.lab=plotcex,cex.axis=plotcex,xlab='',mgp = c(2.5+plotcex*0.9,0.8,0))
       # Add smoothed curve over whole timeseries:
-      data_days=matrix(tsdata[,1],ncol=tstepinday,byrow=TRUE) 
+      data_days=matrix(tsdata[,1],ncol=tstepinday,byrow=TRUE)
       data_smooth = c()
       dayssmooth = 30
       for(i in 1:(ndays-dayssmooth-1)){
@@ -853,13 +836,13 @@ Timeseries <- function(obslabel,tsdata,varname,ytext,legendtext,
       xct = c(1:(ndays-dayssmooth-1))
       xsmooth = xct*tstepinday + (tstepinday*dayssmooth / 2 - tstepinday)
       lines(xsmooth,data_smooth,lwd=3,col='gray')
-      
+
       if(ncurves>1){
         for(p in 2:ncurves){ # for each additional curve
           lines(tsdata[,p],lwd=3,col=plotcolours[p])
-        }  
+        }
       }
-      
+
       legend(0-(xmax-xmin)*0.05,(ymin + (ymax-ymin)*(y_adj+0.42)),legend=legendtext[1:ncurves],lty=1,
              col=plotcolours[1:ncurves],lwd=3,bty="n",cex=max((plotcex*0.75),1))
       # Locations of max,min,mean,sd text:
@@ -874,8 +857,8 @@ Timeseries <- function(obslabel,tsdata,varname,ytext,legendtext,
            cex=max((plotcex*0.75),1),pos=4)
       #Print percentage of data missing if na.rm=TRUE and some data missing
       if(na.rm){
-        perc_missing = signif(sapply(1:ncol(tsdata), function(x) 
-          sum(is.na(tsdata[,x]))/length(tsdata[,x])), digits=3)     
+        perc_missing = signif(sapply(1:ncol(tsdata), function(x)
+          sum(is.na(tsdata[,x]))/length(tsdata[,x])), digits=3)
         if(any(perc_missing > 0)){
           text((xmax-xmin)*0.5,y=(ymin + (ymax-ymin)*(y_adj+0.42)),
                paste("(",paste(perc_missing,collapse=", "), ")% data missing", sep=""),
@@ -909,8 +892,3 @@ Timeseries <- function(obslabel,tsdata,varname,ytext,legendtext,
     return(result)
   }
 }
-
-
-
-
-

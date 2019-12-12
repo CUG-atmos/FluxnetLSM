@@ -65,20 +65,24 @@ get_fluxnet_erai_files <- function(path, site_code = "[A-Z]{2}-[A-Za-z0-9]{3}", 
 
 #' Gets Fluxnet dataset version from Fluxnet file
 #'
+#' @param file a FLUXNET2015 file, e.g 'FLX_US-Ha1_FLUXNET2015_FULLSET_HR_1991-2012_1-3.csv'
+#' 
 #' @export
 get_fluxnet_version_no <- function(file) {
-  #assumes a FLUXNET2015 file, e.g FLX_US-Ha1_FLUXNET2015_FULLSET_HR_1991-2012_1-3.csv
   version <- substr(file, start=nchar(file)-6, stop=nchar(file)-4) 
   return(version)
 }
 
 #-----------------------------------------------------------------------------
 
-#' Gets Fluxnet site_code from Fluxnet file.
+#' Gets Fluxnet site_code from Fluxnet file. 
+#' 
 #' Useful when processing multiple files
+#' 
+#' @param path a FLUXNET2015 file, e.g `FLX_US-Ha1_FLUXNET2015_FULLSET_HR_1991-2012_1-3.csv`
+#' 
 #' @export
 get_path_site_code <- function(path) {
-  #assumes a FLUXNET2015 file, e.g FLX_US-Ha1_FLUXNET2015_FULLSET_HR_1991-2012_1-3.csv
   filename  <- basename(path)
   if (substring(filename[1], 1, nchar("FLX")) == "FLX"){     #better implementation but only for R>3.3: startsWith(filename, "FLX_")) {
     site_code <- substr(filename, start = 5, stop = 10)
@@ -88,7 +92,6 @@ get_path_site_code <- function(path) {
   if (!grepl("^[A-Z]{2}-[A-Za-z0-9]{3}$", site_code[1])) {
     stop("Site code not found in file name")
   }
-
   return(site_code)
 }
 

@@ -28,17 +28,16 @@ ReadCSVFluxData <- function(fileinname, vars, datasetname, time_vars, add_psurf,
                            site_log=site_log,
                            datasetname=datasetname, ...)
 
-
     # If using La Thuile or OzFlux dataset, convert time to Fluxnet2015 format
     if (datasetname=="LaThuile" | datasetname == "OzFlux") {
 
-      
+
         if (datasetname == "LaThuile") {
-          
+
           FluxData <- doCall(convert_LaThuile, infiles=fileinname,
                                        tcol=tcol,
                                        site_log=site_log, ...)
-          
+
           #Add synthesised air pressure (PSurf) as missing values. Also add to tcol and
           #remove from failed vars
           if (add_psurf) {
@@ -46,14 +45,14 @@ ReadCSVFluxData <- function(fileinname, vars, datasetname, time_vars, add_psurf,
             tcol$names       <- append(tcol$names, "PSurf_synth")
             tcol$failed_vars <- tcol$failed_vars[-which(tcol$failed_vars== "PSurf_synth")]
           }
-          
-          
+
+
         } else if (datasetname == "OzFlux") {
-          
+
           FluxData <- convert_OzFlux(infile=fileinname, tcol=tcol)
-          
+
         }
-      
+
         # Rename time vars and column names to match new structure
         time_vars <- c("TIMESTAMP_START", "TIMESTAMP_END")
 
@@ -61,15 +60,13 @@ ReadCSVFluxData <- function(fileinname, vars, datasetname, time_vars, add_psurf,
         tcol$all_names  <- c(tcol$time_names, tcol$names)
 
         colnames(FluxData) <- c(time_vars, colnames(FluxData)[(length(time_vars)+1):ncol(FluxData)])
-        
+
     # Else assume Fluxnet2015 format
     } else {
-      
+
       # Read flux tower data (skips unwanted columns):
       FluxData <- read.csv(file=fileinname, header=TRUE,	colClasses=tcol$classes)
-      
     }
-
 
     # Sanity check, does variable order in file match that specified in tcols?
     # Ignore any possible duplicates in tcol$all_names before check
@@ -79,7 +76,6 @@ ReadCSVFluxData <- function(fileinname, vars, datasetname, time_vars, add_psurf,
         stop_and_log(error, site_log)
         return(site_log)
     }
-
 
     # Split time variables from other variables
     # Extract time stamp data
@@ -114,7 +110,6 @@ ReadCSVFluxData <- function(fileinname, vars, datasetname, time_vars, add_psurf,
     # Retrieve original and target units for variables present:
     units <- retrieve_units(vars_present=tcol$names,
                             all_vars=vars)
-
     # Retrieve acceptable variable ranges:
     var_ranges <- retrieve_ranges(vars_present=tcol$names,
                                   all_vars=vars)
@@ -353,7 +348,7 @@ convert_LaThuile <- function(infiles, fair_usage=NA, fair_usage_vec=NA,
         stop("Problem appending La Thuile data into a Fluxnet2015 format")
     }
 
-    
+
     # Append new time and data
     converted_data <- cbind(new_time, data[,-time_cols])
     return(converted_data)
@@ -370,39 +365,39 @@ convert_OzFlux <- function(infile, tcol) {
   nc <- nc_open(infile)
   on.exit(nc_close(nc))  #Close file
 
-  
+
   #Get data variables
   data_vars <- as.data.frame(lapply(tcol$names, function(var) ncvar_get(nc, var)))
-  
+
   #Set column names
   colnames(data_vars) <- tcol$names
-  
+
   #Get time stamps (this is the END time; pers. comm. Peter Isaac)
   time_var <- ncvar_get(nc, tcol$time_names)
-  
-  
+
+
   ### Convert time stamps to FLUXNET2015 format ###
-  
+
   #Get time origin (should be of format "days since 1800-01-01 00:00:00.0")
   time_origin <- strsplit(ncatt_get(nc, tcol$time_names)$units,
                           "days since ")[[1]][2]
 
-    
+
   #Convert decimal days to date-time (use GMT as time zone to avoid time offsets)
   end_time_dates <- as.POSIXct(time_var * 24*60*60,  origin=time_origin, tz="GMT")
-  
+
   #Calculate start time
   start_time_dates <- end_time_dates - (end_time_dates[2]-end_time_dates[1])
-  
+
   #Then convert to FLUXNET2015 format
   new_start_time <- format(start_time_dates, "%Y%m%d%H%M")
   new_end_time   <- format(end_time_dates, "%Y%m%d%H%M")
-  
+
   #Append start and end time
   new_time <- cbind(new_start_time, new_end_time)
-  
+
   #Append new time and data
-  converted_data <- cbind(new_time, data_vars)  
+  converted_data <- cbind(new_time, data_vars)
   return(converted_data)
 }
 

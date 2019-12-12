@@ -2,12 +2,13 @@
 % Please edit documentation in R/Helpers.R
 \name{get_path_site_code}
 \alias{get_path_site_code}
-\title{Gets Fluxnet site_code from Fluxnet file.
-Useful when processing multiple files}
+\title{Gets Fluxnet site_code from Fluxnet file.}
 \usage{
 get_path_site_code(path)
 }
+\arguments{
+\item{path}{a FLUXNET2015 file, e.g \verb{FLX_US-Ha1_FLUXNET2015_FULLSET_HR_1991-2012_1-3.csv}}
+}
 \description{
-Gets Fluxnet site_code from Fluxnet file.
 Useful when processing multiple files
 }

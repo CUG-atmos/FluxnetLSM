@@ -7,3 +7,6 @@
 ^appveyor\.yml$
 ^LICENSE\.md$
 ^data-raw$
+^data-raw/Site_metadata\.csv$
+^data-raw/Site_metadata\.R$
+^OUTPUTS$

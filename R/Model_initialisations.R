@@ -6,12 +6,11 @@
 # TODO: add more models and attributes, including
 # CABLE patchfrac
 
-#' Finds model-specific parameters to be written 
-#' to output NetCDF files 
+#' Finds model-specific parameters to be written to output NetCDF files 
 initialise_model <- function(model, site_info){
   
   if(is.na(model)){
-    
+
     outs <- NA
     
   } else if(model=="CABLE"){

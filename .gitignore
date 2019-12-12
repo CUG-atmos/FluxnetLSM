@@ -12,3 +12,6 @@
 FluxnetProcessing.Rproj
 FluxnetLSM.Rproj
 *.Rhistory
+
+OUTPUTS/
+*.pdf

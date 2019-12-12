@@ -1,21 +1,21 @@
-#' Functions for error and warning handling 
+#' Functions for error and warning handling
 #' @name Utility
-#' 
+#'
 #' @description
 #' - `log_error`  : Append error message to log
 #' - `log_warning`: Appends warning to site log
 #' - `write_log`  : Writes site log
-#' 
+#'
 #' @keywords internal
 NULL
 
 
 #' @rdname Utility
 log_error <- function(errtext, site_log) {
-  
+
   site_log["Errors"] <- paste(site_log["Errors"], errtext, sep="")
   site_log["Processed"] <- FALSE
-  
+
   return(site_log)
 }
 
@@ -23,17 +23,17 @@ log_error <- function(errtext, site_log) {
 
 #' @rdname Utility
 log_warning <- function(warn, site_log) {
-  
+
   if (nchar(warn) > 0) {
     if (nchar(site_log["Warnings"]) > 0) {
       site_log["Warnings"] <- paste(site_log["Warnings"], warn, sep=" ##### ")
     } else {
       site_log["Warnings"] <- warn
     }
-    
+
   }
   return(site_log)
-  
+
 }
 
 #-----------------------------------------------------------------------------
@@ -47,28 +47,29 @@ no_error <- function(site_log) {
 #-----------------------------------------------------------------------------
 
 #' @rdname Utility
-write_log <- function(site_log) { 
+write_log <- function(site_log) {
   #extract output path
   out_path <- site_log["log_path"]
-  
+
   #remove log and plot path, don't need to write it to file
-  site_log <- site_log[-which(names(site_log)=="log_path")]
-  site_log <- site_log[-which(names(site_log)=="plot_path")]
-  
+  site_log <- site_log[-which(names(site_log) == "log_path")]
+  site_log <- site_log[-which(names(site_log) == "plot_path")]
+
   #Save log to CSV file
-  write.csv(t(as.matrix(site_log)), paste(out_path, "/", site_log["Site_code"], 
-                                          "_FluxnetLSM_processing_log_",  
-                                          Sys.Date(), ".csv", sep=""))
+  outfile = paste(out_path, "/", site_log["Site_code"],
+                  "_FluxnetLSM_processing_log_",
+                  Sys.Date(), ".csv", sep = "")
+  write.csv(t(as.matrix(site_log)), outfile)
 }
 
 #-----------------------------------------------------------------------------
 
 # Writes site log and then aborts, reporting error
 stop_and_log <- function(error, site_log) {
-  
+
   #remove plot path
   unlink(site_log["plot_path"], recursive=TRUE)
-  
+
   site_log <- log_error(error, site_log)
   write_log(site_log)
   stop(site_log["Errors"], call.=FALSE)
@@ -89,16 +90,16 @@ warn_and_log <- function(warn, site_log) {
 
 # Appends warning message and calls warning
 append_and_warn <- function(warn, warnings, call=TRUE) {
-  if (nchar(warn) > 0) { 
-    
+  if (nchar(warn) > 0) {
+
     if (nchar(warnings) > 0) {
       warnings <- paste(warnings, warn, sep=" ##### ")
     } else {
       warnings <- warn
     }
-    
+
     if(call) { warning(warn, call.=FALSE) }
-  
+
   }
   return(warnings)
 }
@@ -107,20 +108,20 @@ append_and_warn <- function(warn, warnings, call=TRUE) {
 
 # Creates output directories and returns log output path
 create_outdir <- function(outdir, site, plots) {
-  
+
   #NetCDF files
   #Met
   outpath_met <- paste(outdir, "/Nc_files/Met/", sep="")
   dir.create(outpath_met, showWarnings = FALSE, recursive=TRUE)
-  
-  #Flux  
+
+  #Flux
   outpath_flx <- paste(outdir, "/Nc_files/Flux/", sep="")
   dir.create(outpath_flx, showWarnings = FALSE, recursive=TRUE)
-  
-  #Log 
+
+  #Log
   outpath_log <- paste(outdir, "/Logs", sep="")
   dir.create(outpath_log, showWarnings = FALSE, recursive=TRUE)
-  
+
   #List
   paths <- list(nc_met=outpath_met, nc_flx=outpath_flx, log=outpath_log)
 
@@ -130,7 +131,7 @@ create_outdir <- function(outdir, site, plots) {
     dir.create(outpath_plot, showWarnings = FALSE, recursive=TRUE)
     paths$plot <- outpath_plot
   }
-  
+
   #Return log path for later use
   return(paths)
 }
@@ -139,13 +140,13 @@ create_outdir <- function(outdir, site, plots) {
 
 # Initialises site log
 initialise_sitelog <- function(site, paths) {
-  
+
   site_log <- vector(length=12)
-  names(site_log) <- c("Site_code", "Processed", "Errors", 
-                       "Warnings", "No_files", "Met_files", 
-                       "Flux_files","Excluded_eval", "Gapfill_met", 
+  names(site_log) <- c("Site_code", "Processed", "Errors",
+                       "Warnings", "No_files", "Met_files",
+                       "Flux_files","Excluded_eval", "Gapfill_met",
                        "Gapfill_flux", "log_path", "plot_path")
-  
+
   site_log["Site_code"] <- site
   site_log["Errors"]    <- ''
   site_log["Warnings"]  <- ''
@@ -154,54 +155,54 @@ initialise_sitelog <- function(site, paths) {
   if ('plot' %in% names(paths)) {
       site_log["plot_path"] <- paths$plot #removed when writing log to file
   }
-  
+
   return(site_log)
-  
+
 }
 
 #-----------------------------------------------------------------------------
 
 # Retrieves QC flag information
 get_qc_flags <- function(dataset, subset=NA) {
-  
+
   #FLUXNET2015 subset
   if (dataset=="FLUXNET2015" & subset=="SUBSET") {
 
     #1: good quality gapfill, 2: ERA gapfilling, 3: statistical gapfilling
     QCmeasured  <- 0
-    QCgapfilled <- c(1, 2, 3) 
-    
+    QCgapfilled <- c(1, 2, 3)
+
     names(QCgapfilled) <- c("good", "ERA", "statistical")
-    
-    qc_info <- paste("Measured: ", QCmeasured, 
-                     ", Good-quality gapfilling: ",QCgapfilled[1], 
-                     ", ERA-Interim gapfilling: ", QCgapfilled[2], 
-                     ", Statistical gapfilling: ", QCgapfilled[3],                      
+
+    qc_info <- paste("Measured: ", QCmeasured,
+                     ", Good-quality gapfilling: ",QCgapfilled[1],
+                     ", ERA-Interim gapfilling: ", QCgapfilled[2],
+                     ", Statistical gapfilling: ", QCgapfilled[3],
                      sep="")
- 
+
   #FLUXNET2015 fullset or La Thuile
   } else if ((dataset=="FLUXNET2015" & subset=="FULLSET") | dataset=="LaThuile") {
-    
-    #1: good quality gapfill, 2: medium, 3: poor, 
+
+    #1: good quality gapfill, 2: medium, 3: poor,
     #4: ERA gapfilling, 5: statistical gapfilling
-    
+
     #These correspond to the "qc" variables in La Thuile (not qcOK)
     QCmeasured  <- 0
-    QCgapfilled <- c(1, 2, 3, 4, 5) 
-    
+    QCgapfilled <- c(1, 2, 3, 4, 5)
+
     names(QCgapfilled) <- c("good", "medium", "poor", "ERA", "statistical")
-    
-    qc_info <- paste("Measured: ", QCmeasured, 
-                     ", Good-quality gapfilling: ",QCgapfilled[1], 
-                     ", Medium-quality gapfilling: ", QCgapfilled[2], 
-                     ", Poor-quality gapfilling: ", QCgapfilled[3], 
-                     ", ERA-Interim gapfilling: ", QCgapfilled[4], 
+
+    qc_info <- paste("Measured: ", QCmeasured,
+                     ", Good-quality gapfilling: ",QCgapfilled[1],
+                     ", Medium-quality gapfilling: ", QCgapfilled[2],
+                     ", Poor-quality gapfilling: ", QCgapfilled[3],
+                     ", ERA-Interim gapfilling: ", QCgapfilled[4],
                      ", Statistical gapfilling: ", QCgapfilled[5],
                      sep="")
-    
-  } else if (dataset == "OzFlux") {  
-    
-    
+
+  } else if (dataset == "OzFlux") {
+
+
     #QC flags in original data (this not may be a complete list, combined info from L3 and L6)
     qc_flags <- c(L1_missing      = "QA/QC: Missing value in L1 dataset",                 #1
                   L2_range        = "QA/QC: L2 Range Check",                              #2
@@ -260,46 +261,46 @@ get_qc_flags <- function(dataset, subset=NA) {
                                            "conditions) only if bad Fe (33) and bad ",
                                            "Fsd (34) flags not set"),
                   part_night      = paste0("Partitioning Night: Re computed from ",       #70
-                                           "exponential temperature response curves"),    
+                                           "exponential temperature response curves"),
                   part_day        = paste0("Partitioning Day: GPP/Re computed from ",     #80
                                            "light-response curves, GPP = Re - Fc"),
                   part_day_night  = "Partitioning Day: GPP night mask",                   #81
                   part_day_fc     = "Partitioning Day: Fc > Re, GPP = 0, Re = Fc",        #82
-                  
+
                   statistical     = paste0("Statistical gapfilling performed by ",        #100, added for package-performed gapfilling
                                            "FluxnetLSM")
-                  
-                  ) 
-    
-    
+
+                  )
+
+
     #QC flags (100 added for statistical gapfilling, others provided with original data)
     #Measured (using 0 and 10 as per what is done in PALS and following advice from Peter Isaac and Gab)
     QCmeasured <- c(0, 10)
-    
+
     #Gapfilled
     QCgapfilled <- c(1:8, 11:21, 30:40, 50:52, 60:64, 70, 80:82, 100)
     names(QCgapfilled) <- names(qc_flags)
-    
+
     #Append qc flags
-    qc_info <- paste0("Measured: ", QCmeasured, ", ", 
+    qc_info <- paste0("Measured: ", QCmeasured, ", ",
                       paste(mapply(function(qc, name) paste0(name, ": ", qc),
                             qc=QCgapfilled, name=qc_flags), collapse=(", ")))
-    
-  #Dataset not known  
+
+  #Dataset not known
   } else {
-    
+
     stop(paste("Dataset name not recognised, cannot verify",
               "QC flag convention. Please amend. See code",
               "in R/Utility_functions.R for options"))
   }
-  
-  
+
+
   #Collate into a list
   qc_flags        <- list(QCmeasured, QCgapfilled, qc_info)
   names(qc_flags) <- c("QC_measured", "QC_gapfilled", "qc_info")
-  
+
   return(qc_flags)
-  
+
 }
 
 
@@ -307,8 +308,8 @@ get_qc_flags <- function(dataset, subset=NA) {
 
 # Checks  that FLUXNET2015 version defined correctly
 check_flx2015_version <- function(dataset, version) {
-  
-  if (dataset == "FLUXNET2015" & (is.na(version) | 
+
+  if (dataset == "FLUXNET2015" & (is.na(version) |
      (version != "SUBSET" & version!="FULLSET"))) {
             stop(paste("Version of FLUXNET2015 data product not",
             "specified correctly. Please set parameter",
@@ -320,39 +321,39 @@ check_flx2015_version <- function(dataset, version) {
 
 # Gets possible varnames for FLUXNET FULLSET/SUBSET and La Thuile
 get_varnames <- function(datasetname, flx2015_version, add_psurf) {
-  
+
   #These are used for unit conversions etc.
-  
+
   #First instance is FLUXNET2015 FULLSET,
   #Second FLUXNET2015 SUBSET
   #Third La Thuile
-  
+
   if(datasetname == "FLUXNET2015" & flx2015_version == "SUBSET") {
     ind <- 2
   } else if (datasetname == "LaThuile") {
     ind <- 3
-    
+
   } else if (datasetname=="OzFlux"){
     ind <- 4
   } else {
     #Else assume FLUXNET2015 fullset format, i.e. if (datasetname=="FLUXNET2015" & flx2015_version=="FULLSET")
     ind <- 1
-  } 
-  
+  }
+
   #La Thuile PSurf exception
   if (add_psurf) { lt_psurf <- "PSurf_synth" } else { lt_psurf <- NULL }
-  
-  
+
+
   tair        <- list(c("TA_F_MDS", "TA_F", "TA_ERA"),
                       c("TA_F"),
                       c("Ta_f"),
                       c("Ta"))
   precip      <- list(c("P", "P_F", "P_ERA"),
-                      c("P_F"), 
+                      c("P_F"),
                       c("Precip_f"),
                       c("Precip"))
-  airpressure <- list(c("PA", "PA_ERA", "PA_F"), 
-                      c("PA_F"), 
+  airpressure <- list(c("PA", "PA_ERA", "PA_F"),
+                      c("PA_F"),
                       c(lt_psurf),
                       c("ps"))
   co2         <- list(c("CO2_F_MDS"),
@@ -383,13 +384,13 @@ get_varnames <- function(datasetname, flx2015_version, add_psurf) {
                       c("WS_F"),
                       c("WS_f"),
                       c("Ws"))
-  
-  
+
+
   outs <- list(tair=tair[[ind]], precip=precip[[ind]], airpressure=airpressure[[ind]],
-               co2=co2[[ind]], par=par[[ind]], swdown=swdown[[ind]], 
+               co2=co2[[ind]], par=par[[ind]], swdown=swdown[[ind]],
                relhumidity=relhumidity[[ind]],
                lwdown=lwdown[[ind]], vpd=vpd[[ind]], wind=wind[[ind]])
-  
+
   return(outs)
-  
+
 }

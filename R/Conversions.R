@@ -223,23 +223,21 @@ Rel2SpecHumidity <- function(relHum, airtemp, tair_units,
 }
 
 
-#-----------------------------------------------------------------------------
-
 #' Calculates saturation vapour pressure
 #' 
 #' @param airtemp air temperature in degrees C
+#' 
 #' @return saturation vapour pressure
 #' 
 #' @references
 #' Jones (1992), Plants and microclimate: A quantitative approach to 
 #' environmental plant physiology, p110
 #' @export
-calc_esat <- function(airtemp){  
+calc_esat <- function(airtemp){
   esat <- 613.75 * exp(17.502 * airtemp / (240.97+airtemp))  
   return(esat)
 }
 
-#-----------------------------------------------------------------------------
 
 # Convert air temperature from Celsius to Kelvin
 celsius_to_kelvin <- function(data){

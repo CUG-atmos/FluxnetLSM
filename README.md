@@ -5,7 +5,6 @@ FluxnetLSM
 
 R package for post-processing FLUXNET datasets for use in land surface modelling. Performs quality control and data conversion of FLUXNET data and collated site metadata. Supports `FLUXNET2015`, `La Thuile` and `OzFlux` data releases.
 
-
 * N.B. options to check for level of gap-filling have changed since v1.0.
 
 * Now using separate "missing" thresholds for met and flux variables, as well as
@@ -14,34 +13,25 @@ check for flux variables
 
 
 ## Installation
-
-### Installing FluxnetLSM    
+  
 * Install with `devtools`: 
-
-```{r}
+```r
 # install.packages("devtools")
 devtools::install_github("kongdd/FluxnetLSM")
 ```
 
-* install in offline:
-
-```{r}
-$ git clone https://github.com/kongdd/FluxnetLSM.git
-```
-```{r}
+* Offline installation:
+```r
+$ git clone https://github.com/kongdd/FluxnetLSM.git # run in terminal
 install.packages("path_to_downloaded_package_files/FluxnetLSM", repos=NULL, type='source')
 ```
 
 ## Usage
 
 See `examples` for example usage. Three examples are provided FLUXNET2015 and La Thuile for processing a single site or multiple sites:
-
 - single site (`examples/*/example_conversion_single_site.R`)
-
 - multiple sites (`examples/*/example_conversion_multiple_sites.R`)
-
 - multiple sites using parallel programming (`examples/*/example_conversion_multiple_sites_parallel.R`)
-
 
 ## Troubleshooting
 
