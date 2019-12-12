@@ -3,7 +3,7 @@
 # Functions for units changes
 #
 # author: Anna Ukkola UNSW 2017
-#
+
 
 #' Converts units from original Fluxnet to target ALMA units
 #' @return datain
@@ -19,7 +19,6 @@ ChangeUnits <- function(datain, varnames, site_log){
   
   #Save timestep size (in seconds):
   tstep <- datain$timestepsize
-  
   
   #track if variable converted or not
   #used if a conversion relies on several variables
@@ -124,7 +123,6 @@ ChangeUnits <- function(datain, varnames, site_log){
 #         
 #         datain$data[[k]] <- datain$data[[k]] * [your conversion]
         
-                
       ## If cannot find conversion, abort  
       } else {
         error <- paste("Unknown unit conversion. cannot convert between original ", 
@@ -135,7 +133,6 @@ ChangeUnits <- function(datain, varnames, site_log){
                        sep="")
         stop_and_log(error, site_log)
       }
-      
       
       #Set to TRUE after converting variable  
       converted[k] <- TRUE
@@ -229,26 +226,23 @@ Rel2SpecHumidity <- function(relHum, airtemp, tair_units,
 #-----------------------------------------------------------------------------
 
 #' Calculates saturation vapour pressure
+#' 
+#' @param airtemp air temperature in degrees C
 #' @return saturation vapour pressure
-calc_esat <- function(airtemp){
-  #Tair in degrees C
-  
-  #From Jones (1992), Plants and microclimate: A quantitative approach 
-  #to environmental plant physiology, p110
-  esat <- 613.75 * exp(17.502 * airtemp / (240.97+airtemp))
-  
+#' 
+#' @references
+#' Jones (1992), Plants and microclimate: A quantitative approach to 
+#' environmental plant physiology, p110
+#' @export
+calc_esat <- function(airtemp){  
+  esat <- 613.75 * exp(17.502 * airtemp / (240.97+airtemp))  
   return(esat)
 }
 
 #-----------------------------------------------------------------------------
 
-#' Convert air temperature from Celsius to Kelvin
+# Convert air temperature from Celsius to Kelvin
 celsius_to_kelvin <- function(data){
   data <- data + 273.15
   return(data)
 }
-
-
-
-
-

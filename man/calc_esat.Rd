@@ -6,9 +6,16 @@
 \usage{
 calc_esat(airtemp)
 }
+\arguments{
+\item{airtemp}{air temperature in degrees C}
+}
 \value{
 saturation vapour pressure
 }
 \description{
 Calculates saturation vapour pressure
+}
+\references{
+Jones (1992), Plants and microclimate: A quantitative approach to
+environmental plant physiology, p110
 }

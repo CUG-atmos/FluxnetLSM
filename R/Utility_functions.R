@@ -1,9 +1,16 @@
-# Utility_functions.R
-# 
-# Functions for error and warning handling
+#' Functions for error and warning handling 
+#' @name Utility
+#' 
+#' @description
+#' - `log_error`  : Append error message to log
+#' - `log_warning`: Appends warning to site log
+#' - `write_log`  : Writes site log
+#' 
+#' @keywords internal
+NULL
 
 
-#' Append error message to log
+#' @rdname Utility
 log_error <- function(errtext, site_log) {
   
   site_log["Errors"] <- paste(site_log["Errors"], errtext, sep="")
@@ -14,7 +21,7 @@ log_error <- function(errtext, site_log) {
 
 #-----------------------------------------------------------------------------
 
-#' Appends warning to site log
+#' @rdname Utility
 log_warning <- function(warn, site_log) {
   
   if (nchar(warn) > 0) {
@@ -31,18 +38,16 @@ log_warning <- function(warn, site_log) {
 
 #-----------------------------------------------------------------------------
 
-#' Checks if an error has occurred
+# Checks if an error has occurred
 no_error <- function(site_log) {
- 
- no_error_found <- nchar(site_log["Errors"]) < 1
- return(no_error_found)
+  no_error_found <- nchar(site_log["Errors"]) < 1
+  return(no_error_found)
 }
 
 #-----------------------------------------------------------------------------
 
-#' Writes site log
-write_log <- function(site_log) {
-  
+#' @rdname Utility
+write_log <- function(site_log) { 
   #extract output path
   out_path <- site_log["log_path"]
   
@@ -58,7 +63,7 @@ write_log <- function(site_log) {
 
 #-----------------------------------------------------------------------------
 
-#' Writes site log and then aborts, reporting error
+# Writes site log and then aborts, reporting error
 stop_and_log <- function(error, site_log) {
   
   #remove plot path
@@ -71,7 +76,7 @@ stop_and_log <- function(error, site_log) {
 
 #-----------------------------------------------------------------------------
 
-#' Writes site log and then aborts, reporting error
+# Writes site log and then aborts, reporting error
 warn_and_log <- function(warn, site_log) {
   if (nchar(warn) > 0) {
     site_log <- log_warning(warn, site_log)
@@ -82,7 +87,7 @@ warn_and_log <- function(warn, site_log) {
 
 #-----------------------------------------------------------------------------
 
-#' Appends warning message and calls warning
+# Appends warning message and calls warning
 append_and_warn <- function(warn, warnings, call=TRUE) {
   if (nchar(warn) > 0) { 
     
@@ -100,11 +105,10 @@ append_and_warn <- function(warn, warnings, call=TRUE) {
 
 #-----------------------------------------------------------------------------
 
-#' Creates output directories and returns log output path
+# Creates output directories and returns log output path
 create_outdir <- function(outdir, site, plots) {
   
   #NetCDF files
-  
   #Met
   outpath_met <- paste(outdir, "/Nc_files/Met/", sep="")
   dir.create(outpath_met, showWarnings = FALSE, recursive=TRUE)
@@ -112,7 +116,6 @@ create_outdir <- function(outdir, site, plots) {
   #Flux  
   outpath_flx <- paste(outdir, "/Nc_files/Flux/", sep="")
   dir.create(outpath_flx, showWarnings = FALSE, recursive=TRUE)
-  
   
   #Log 
   outpath_log <- paste(outdir, "/Logs", sep="")
@@ -134,7 +137,7 @@ create_outdir <- function(outdir, site, plots) {
 
 #-----------------------------------------------------------------------------
 
-#' Initialises site log
+# Initialises site log
 initialise_sitelog <- function(site, paths) {
   
   site_log <- vector(length=12)
@@ -158,7 +161,7 @@ initialise_sitelog <- function(site, paths) {
 
 #-----------------------------------------------------------------------------
 
-#' Retrieves QC flag information
+# Retrieves QC flag information
 get_qc_flags <- function(dataset, subset=NA) {
   
   #FLUXNET2015 subset
@@ -282,11 +285,6 @@ get_qc_flags <- function(dataset, subset=NA) {
                       paste(mapply(function(qc, name) paste0(name, ": ", qc),
                             qc=QCgapfilled, name=qc_flags), collapse=(", ")))
     
-    
-
-    
-    
-    
   #Dataset not known  
   } else {
     
@@ -307,7 +305,7 @@ get_qc_flags <- function(dataset, subset=NA) {
 
 #-----------------------------------------------------------------------------
 
-#' Checks  that FLUXNET2015 version defined correctly
+# Checks  that FLUXNET2015 version defined correctly
 check_flx2015_version <- function(dataset, version) {
   
   if (dataset == "FLUXNET2015" & (is.na(version) | 
@@ -320,7 +318,7 @@ check_flx2015_version <- function(dataset, version) {
 
 #-----------------------------------------------------------------------------
 
-#' Gets possible varnames for FLUXNET FULLSET/SUBSET and La Thuile
+# Gets possible varnames for FLUXNET FULLSET/SUBSET and La Thuile
 get_varnames <- function(datasetname, flx2015_version, add_psurf) {
   
   #These are used for unit conversions etc.
@@ -395,8 +393,3 @@ get_varnames <- function(datasetname, flx2015_version, add_psurf) {
   return(outs)
   
 }
-
-
-
-
-

@@ -469,7 +469,6 @@ IsWholeYrs <- function(datain, gaps, site_log){
 
 #' Checks that data are within specified ranges
 #' as set in the "variables" auxiliary file
-#'
 CheckDataRanges <- function(datain, site_log, action="stop"){
 
     # Loop through variables

@@ -6,3 +6,4 @@
 ^TODO\.md$
 ^appveyor\.yml$
 ^LICENSE\.md$
+^data-raw$

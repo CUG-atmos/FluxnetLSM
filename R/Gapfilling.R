@@ -73,11 +73,7 @@ GapfillMet_with_ERA <- function(datain, ERA_file, qc_name, varnames, site_log, .
     error <- "Error creating new QC flags"
     stop_and_log(error, site_log)
   }
-  
-  
-  
   return(datain)
-
 }
 
 #-----------------------------------------------------------------------------
@@ -108,7 +104,6 @@ GapfillMet_statistical <- function(datain, qc_name, qc_flags,
     return()
   }
   
-
   #Remove QC vars
   qc_ind <- which(grepl(qc_name, substr(names(ind), (nchar(qc_name)-1), 
                                         nchar(names(ind)))))
@@ -257,13 +252,11 @@ GapfillMet_statistical <- function(datain, qc_name, qc_flags,
       stop_and_log(error=error, site_log=site_log)
     }
     
-    
     #Synthesize air pressure
     temp_data <- gapfill_LWdown_Pair(datain, var="Pair", var_ind=pair_ind, 
                                      TairK=tair_ind, elev=elevation,
                                      varnames=varnames,
                                      site_log=site_log)
-    
     #Replace with gapfilled data
     datain$data[,names(pair_ind)] <- temp_data$data
     
@@ -279,12 +272,7 @@ GapfillMet_statistical <- function(datain, qc_name, qc_flags,
     
     }
   }
-  
-  
-  #Return modified data frame
-  return(list(data=datain, site_log=site_log))
-  
-
+  return(list(data=datain, site_log=site_log)) #Return modified data frame
 }
 
 #-----------------------------------------------------------------------------
@@ -298,8 +286,6 @@ GapfillFlux <- function(datain, qc_name, qc_flags, regfill,
   
   #Gapfills longer gaps (up to regfill length of time) using
   #linear regression against met variables
-  
-  
   
   #QC value for statistical gapfilling
   qc_value <- qc_flags$QC_gapfilled["statistical"]
@@ -321,7 +307,6 @@ GapfillFlux <- function(datain, qc_name, qc_flags, regfill,
   vars     <- names(ind)
   out_vars <- datain$out_vars[ind]
 
-  
   #Find Tair, RH/VPD and SWdown index for regression gapfilling
   all_vars   <- datain$vars
   tair_ind   <- which(all_vars %in% varnames$tair)[1]
@@ -333,7 +318,6 @@ GapfillFlux <- function(datain, qc_name, qc_flags, regfill,
   if (length(rh_ind) ==0) {
     rh_ind <- which(all_vars %in% varnames$vpd)[1]
   }
-  
   
   #Convert time steps to monts, days and hours (no year)
   #Used for copyfill, done here so only have to do once
@@ -673,10 +657,8 @@ update_qc <- function(data, temp_data, varname, qc_name, qc_value, qc_flags,...)
     colnames(data$data)[ncol(data$data)] <- qc_varname
     
     #Add new QC var to attributes
-    data <- create_qc_var(data, qc_varname, qc_flags,  ...)
-    
+    data <- create_qc_var(data, qc_varname, qc_flags,  ...) 
   }
-  
   return(data)
 }
 
@@ -689,6 +671,5 @@ append_qc <- function(old_data, new_value, new_name){
   names(old_data)[length(old_data)] <- new_name
   
   return(old_data)
-  
 }
 

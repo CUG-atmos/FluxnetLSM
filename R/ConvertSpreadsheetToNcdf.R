@@ -35,13 +35,11 @@
 #'        e.g. "FULLSET/FLX_AU-How_FLUXNET2015_ERAI_HH_1989-2014_1-3.csv"
 #' @param out_path output path e.g. "./FLUXNET2016_processing/"
 #' @param conv_opts options for the conversion.
-#'        See \code{\link{get_default_conversion_options}}.
+#'        See [get_default_conversion_options()].
 #' @param plot Should annual, diurnal and/or 14-day running mean plots be produced?
 #'        Set to NA if not required.
 #'
 #' @export
-#'
-#'
 convert_fluxnet_to_netcdf <- function(site_code, infile, era_file=NA, out_path,
                                       conv_opts=get_default_conversion_options(),
                                       plot=c("annual", "diurnal", "timeseries"),
@@ -59,7 +57,7 @@ convert_fluxnet_to_netcdf <- function(site_code, infile, era_file=NA, out_path,
   }
 
   
-  library(R.utils)  
+  # library(R.utils)  
   
   ### Create sub-folders for outputs ###
   out_paths <- create_outdir(out_path, site_code, plot)

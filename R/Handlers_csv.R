@@ -178,10 +178,8 @@ ReadCSVFluxData <- function(fileinname, vars, datasetname, time_vars, add_psurf,
     tstepinday <- 86400/timestepsize
     ndays      <- ntsteps/tstepinday
 
-
     # Find starting date / time:
     starttime <- findStartTime(start=start)
-
     intyears  <- Yeardays(starttime$syear,ndays)
 
     # Create list for function exit:
@@ -193,20 +191,16 @@ ReadCSVFluxData <- function(fileinname, vars, datasetname, time_vars, add_psurf,
                      starttime=starttime, timestepsize=timestepsize,
                      daysPerYr=intyears$daysperyear,
                      ndays=ndays, whole=intyears$whole)
-
     return(filedata)
-
 }
 
 #-----------------------------------------------------------------------------
 
 #' Reads ERA data and extracts time steps corresponding to obs
 read_era <- function(ERA_file, datain) {
-
     # read data
     era_data <- read.csv(ERA_file, header=TRUE, colClasses=c("character", "character",
                                                              rep("numeric", 7)))
-
     # ERAinterim data provided for 1989-2014, need to extract common years with flux obs
     # Find start and end
     obs_start <- datain$time$TIMESTAMP_START
@@ -215,9 +209,7 @@ read_era <- function(ERA_file, datain) {
 
     # Extract correct time steps
     era_data  <- era_data[start_era:end_era,]
-
     return(era_data)
-
 }
 
 #-----------------------------------------------------------------------------
@@ -225,7 +217,6 @@ read_era <- function(ERA_file, datain) {
 #' Converts La Thuile files to FLUXNET2015 format
 convert_LaThuile <- function(infiles, fair_usage=NA, fair_usage_vec=NA,
                              min_yrs, tcol, add_psurf, site_log, site_code) {
-
     # library(R.utils) # seqToIntervals
     ### Find files to process ###
 
@@ -248,14 +239,10 @@ convert_LaThuile <- function(infiles, fair_usage=NA, fair_usage_vec=NA,
         years <- as.numeric(intersect(all_years,fair_use_years))
 
     } else {
-
         warning("Not using Fair Use policy to extract years")
-
         # Find years that are fair use and have files for
         years <- as.numeric(all_years)
-
     }
-
 
     # Check what years are consecutive
     consec <- seqToIntervals(years)
@@ -369,7 +356,6 @@ convert_LaThuile <- function(infiles, fair_usage=NA, fair_usage_vec=NA,
     
     # Append new time and data
     converted_data <- cbind(new_time, data[,-time_cols])
-
     return(converted_data)
 
 }
@@ -379,11 +365,11 @@ convert_LaThuile <- function(infiles, fair_usage=NA, fair_usage_vec=NA,
 
 #' Converts OzFlux files to FLUXNET2015 format
 convert_OzFlux <- function(infile, tcol) {
-  
   # library(ncdf4)
-  
   #Open file handle
   nc <- nc_open(infile)
+  on.exit(nc_close(nc))  #Close file
+
   
   #Get data variables
   data_vars <- as.data.frame(lapply(tcol$names, function(var) ncvar_get(nc, var)))
@@ -416,14 +402,8 @@ convert_OzFlux <- function(infile, tcol) {
   new_time <- cbind(new_start_time, new_end_time)
   
   #Append new time and data
-  converted_data <- cbind(new_time, data_vars)
-  
-    
-  #Close file
-  nc_close(nc)
-
+  converted_data <- cbind(new_time, data_vars)  
   return(converted_data)
-
 }
 
 
