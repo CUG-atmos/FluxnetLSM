@@ -26,17 +26,14 @@ ERA_path <- "./ERA_inputs"
 out_path <- "./Outputs"
 
 #--- Automatically retrieve all Fluxnet files in input directory ---#
-
 # Input Fluxnet data files (using FULLSET in this example, se R/Helpers.R for details)
 infiles <- get_fluxnet_files(in_path)
-
 datasetversions <- sapply(infiles, get_fluxnet_version_no) #Retrieve dataset versions
 
 #Retrieve site codes
 site_codes <- sapply(infiles, get_path_site_code)
 
 ## 2. Optional settings --------------------------------------------------------
-
 conv_opts <- get_default_conversion_options()
 
 # ERAinterim meteo file for gap-filling met data (set to NA if not desired)
