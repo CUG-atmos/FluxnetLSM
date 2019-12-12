@@ -2,6 +2,8 @@
 % Please edit documentation in R/Synthesize_and_gapfill_functions.R
 \name{regfill_flux}
 \alias{regfill_flux}
+\alias{regtrain}
+\alias{regpredict}
 \title{Gapfills flux data using linear regression against met variables}
 \usage{
 regfill_flux(
@@ -16,7 +18,17 @@ regfill_flux(
   site_log,
   ...
 )
+
+regtrain(traindata, ydata, ...)
+
+regpredict(rgrp, traindata, dayn)
 }
 \description{
-Gapfills flux data using linear regression against met variables
+\code{regtrain}: Trains multiple linear regression for flux gap-filling
+separately for day and night.
+
+\code{regpredict}: Predict flux values using linear regression parameters
+}
+\seealso{
+\code{\link[=DayNight]{DayNight()}}
 }

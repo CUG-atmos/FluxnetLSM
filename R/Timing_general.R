@@ -153,15 +153,24 @@ create_dummy_year <- function(year, tstep, time_vars){
 #-----------------------------------------------------------------------------
 
 #' Finds day and night time steps
+#' 
+#' @param SWdown A numeric vector, surface incident shortwave radiation
+#' @param units Character scalar, "umol/m2/s" or others
+#' 
+#' @return
+#' `daynotnight`: A boolean vector. If `Rs > 5 W/m2/s`, `daynotnight = TRUE`, 
+#' else `daynotnight = FALSE`.
+#' 
+#' @references
+#' Adapted from PALS
+#' @export
 DayNight <- function (SWdown, units) 
 {
-  
-  #Adapted from PALS
-  
   #Minor modifications to allow for PAR and SWdown
   if(units=="umol/m2/s"){
     threshold <- 5 / (1/2.3)
   } else{
+    # W m-2 s-1
     threshold <- 5
   }
   
@@ -173,7 +182,6 @@ DayNight <- function (SWdown, units)
   
   #Set nighttime to FALSE
   daynotnight[SWdown <= threshold] <- FALSE
-  
   
   return(daynotnight)
 }

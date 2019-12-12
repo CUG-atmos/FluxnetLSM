@@ -330,11 +330,9 @@ remove_duplicates <- function(indices){
     
     #Take the n-th element for each occurrence
     for(n in 1:length(ind)) indices[ind[n]][[1]] <- indices[ind[n]][[1]][n]
-    
   }
   
   return(indices)
-  
 }
 
 

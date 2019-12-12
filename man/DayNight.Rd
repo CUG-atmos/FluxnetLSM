@@ -6,6 +6,18 @@
 \usage{
 DayNight(SWdown, units)
 }
+\arguments{
+\item{SWdown}{A numeric vector, surface incident shortwave radiation}
+
+\item{units}{Character scalar, "umol/m2/s" or others}
+}
+\value{
+\code{daynotnight}: A boolean vector. If \verb{Rs > 5 W/m2/s}, \code{daynotnight = TRUE},
+else \code{daynotnight = FALSE}.
+}
 \description{
 Finds day and night time steps
+}
+\references{
+Adapted from PALS
 }

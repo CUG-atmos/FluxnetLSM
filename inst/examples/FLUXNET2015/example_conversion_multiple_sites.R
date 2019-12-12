@@ -13,19 +13,16 @@
 #' options are left to their default values.
 
 library(fluxnetLSM)  # convert_fluxnet_to_netcdf
-rm(list=ls(all=TRUE))
+# rm(list=ls(all=TRUE))
 
-#############################
-###--- Required inputs ---###
-#############################
+## 1. Required inputs ----------------------------------------------------------
 
 #--- User must define these ---#
-# This directory should contain appropriate data from 
-# http://fluxnet.fluxdata.org/data/fluxnet2015-dataset/
-in_path <- "./Inputs"
+# This directory should contain appropriate data from http://fluxnet.fluxdata.org/data/fluxnet2015-dataset/
+in_path  <- "./Inputs"
 ERA_path <- "./ERA_inputs"
 
-#Outputs will be saved to this directory
+# Outputs will be saved to this directory
 out_path <- "./Outputs"
 
 #--- Automatically retrieve all Fluxnet files in input directory ---#
@@ -33,15 +30,12 @@ out_path <- "./Outputs"
 # Input Fluxnet data files (using FULLSET in this example, se R/Helpers.R for details)
 infiles <- get_fluxnet_files(in_path)
 
-#Retrieve dataset versions
-datasetversions <- sapply(infiles, get_fluxnet_version_no)
+datasetversions <- sapply(infiles, get_fluxnet_version_no) #Retrieve dataset versions
 
 #Retrieve site codes
 site_codes <- sapply(infiles, get_path_site_code)
 
-###############################
-###--- Optional settings ---###
-###############################
+## 2. Optional settings --------------------------------------------------------
 
 conv_opts <- get_default_conversion_options()
 
@@ -55,10 +49,7 @@ if(any(sapply(ERA_files, length)==0) & conv_opts$met_gapfill=="ERAinterim"){
   stop("No ERA files found, amend input path")
 }
 
-##########################
-###--- Run analysis ---###
-##########################
-
+## 3. Run analysis -------------------------------------------------------------
 #Loops through sites
 mapply(function(site_code, infile, ERA_file, datasetversion) {
         try(

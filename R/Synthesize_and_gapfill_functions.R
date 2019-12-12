@@ -25,7 +25,6 @@ gapfill_with_ERA <- function(datain, era_data, era_vars, tair_units, vpd_units,
     return(site_log)
   }
   
-  
   #List available ERA variables
   ind  <- which(!is.na(era_vars))
   
@@ -82,15 +81,12 @@ gapfill_with_ERA <- function(datain, era_data, era_vars, tair_units, vpd_units,
         
         #Gapfill
         datain[missing,flx_col] <- era_rh[missing]
-        
-        
+      
         ### Other variables ###
         #ERAinterim equivalent should exist, use that directly
       } else {
-        
         #Gapfill
         datain[missing, flx_col] <- era_data[missing, era_col]
-        
       }
       
       #Save method
@@ -100,11 +96,9 @@ gapfill_with_ERA <- function(datain, era_data, era_vars, tair_units, vpd_units,
       #Find corresponding qc variable, if available
       qc_col <- which(colnames(datain)==paste(avail_flux[k], qc_name, sep=""))
       
-      
       #Replace era gap-filled time steps with ERA QC flag
       if(length(qc_col) > 0){
         datain[missing,qc_col] <- qc_flags$QC_gapfilled["ERA"]
-        
       } else {
         message(paste("Could not find QC flag for variable", 
                       avail_flux[k], "gap-filled with ERA data. Creating QC flag."))
@@ -124,7 +118,6 @@ gapfill_with_ERA <- function(datain, era_data, era_vars, tair_units, vpd_units,
     } #if
   } #vars
   
-  
   #Assign new QC variable names to data frame column names
   if(length(new_qc) > 0){ 
     colnames(new_qc) <- qc_names
@@ -135,10 +128,8 @@ gapfill_with_ERA <- function(datain, era_data, era_vars, tair_units, vpd_units,
   #Collate outputs
   out <- list(datain=datain, new_qc=new_qc_info, method=method)
   
-  return(out)
-  
+  return(out)  
 } #function
-
 
 #-----------------------------------------------------------------------------
 
@@ -188,10 +179,8 @@ linfill_data <- function(data, tstepsize,
     
   }
   
-  
   #Return gap-filled data and index of missing values
   return(list(data=data, missing=missing_linfilled))  
-  
 }
 
 #-----------------------------------------------------------------------------
@@ -199,12 +188,9 @@ linfill_data <- function(data, tstepsize,
 #' Performs copyfill gapfilling
 copyfill_data <- function(data, tsteps, tstepsize, copyfill=10,
                           varname, site_log){
-  
-  
   #Max number of consecutive time steps allowed
   # to be missing
   max_gap <- (copyfill*60*60*24)/tstepsize
-  
   
   #First check that no gaps are longer than "copyfill"
     
@@ -264,10 +250,8 @@ copyfill_data <- function(data, tsteps, tstepsize, copyfill=10,
     }
   }
     
-  
   #Return gap-filled data and index of missing values
   return(list(data=data, missing=missing, site_log=site_log))
-  
 }
 
 
@@ -394,10 +378,7 @@ regfill_flux <- function(ydata, traindata, tstepsize, regfill, varname,
     
     #Append to missing
     missing_all <- append(missing_all, unlist(seq))    
-    
   }
-  
-    
   
   #If found missing values:
   if (length(missing_all) > 0) {  
@@ -455,12 +436,17 @@ regfill_flux <- function(ydata, traindata, tstepsize, regfill, varname,
 
 #-----------------------------------------------------------------------------
 
-#' Trains multiple linear regression for flux gap-filling 
-#' separately for day and night
+#' @description
+#' `regtrain`: Trains multiple linear regression for flux gap-filling 
+#' separately for day and night.
+#' 
+#' @seealso [DayNight()]
+#' 
+#' @rdname regfill_flux
+#' @export
 regtrain <- function(traindata, ydata, ...) {
-    
   # Separate day and night:
-  dayn <- DayNight(as.double(traindata[,"SWdown"]), ...)
+  dayn <- DayNight(as.double(traindata[,"SWdown"]), ...) # is_daytime
   
   #Day and night training datasets
   Yday     <- ydata[dayn]
@@ -476,7 +462,6 @@ regtrain <- function(traindata, ydata, ...) {
   data_night           <- cbind(Ynight, trainNight)
   colnames(data_night) <- c("y", colnames(traindata))
   
-  
   # Train regression parameters (dot means use all variables
   # in data frame as predictors):
   rgrp_day   <- lm(y ~ ., data=as.data.frame(data_day), na.action=na.omit)
@@ -490,7 +475,10 @@ regtrain <- function(traindata, ydata, ...) {
 
 #-----------------------------------------------------------------------------
 
-#' Predict flux values using linear regression parameters
+#' @description
+#' `regpredict`: Predict flux values using linear regression parameters
+#' @rdname regfill_flux
+#' @export
 regpredict <- function(rgrp,traindata, dayn) {
   
   # Use existing parameters to make empirical prediction:
@@ -581,8 +569,7 @@ SynthesizePSurf <- function(TairK, elevation, pair_units) {
     stop(paste("Cannot synthesise air pressure, do not recognise air pressure units.",
                "Please use Pa or kPa"))
   }
-  
-  
+
   return(PSurf)
 }
 
